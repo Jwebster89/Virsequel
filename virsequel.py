@@ -10,6 +10,7 @@ class Virsequel():
             self.adapters=adapters
             self.threads=threads
             self.output=output
+            # self.sampleID=os.path.basename(os.path.splitext(self.R1)[0]).replace(".fastq", "").replace(".fq", "")
 
     def init_logs(self,sampleID):
         # create logs directory if it does not exist
