@@ -21,6 +21,8 @@ def main():
     input_group.add_argument('-2', '--read_2', type=str, required=False, help="Reverse RNA fastq.gz data")
     input_group.add_argument('-a', '--adapter', type=str, required=False, help="adapter file for bbduk trimming")
     input_group.add_argument('-o', '--output', type=str, required=False, help="output path")
+    input_group.add_argument('-b', '--blastn', action='store_true', help='run blastn instead of diamond blastx')
+    input_group.add_argument('-d', '--database', type=str, default='nr', help='the path of the database to use')
     
     optional = parser.add_argument_group('Optional Arguments')
     optional.add_argument("-h", "--help", action="help", help="show this help message and exit")
@@ -36,6 +38,8 @@ def main():
         adapters = config.get('input', 'adapters')
         threads = config.get('input', 'threads')
         output = config.get('input', 'output')
+        database = config.get('input', 'database')
+        blastn=config.getboolean('input', 'blastn')
         sample_list = config['input']['sample_list'].split(',')
         
         # Check sample_list is provided in the config file
@@ -45,7 +49,7 @@ def main():
             for sample in sample_list:
                 R1=sample
                 R2=sample.replace('_R1', '_R2')
-                pipeline = Virsequel(R1, R2, adapters, threads, output)
+                pipeline = Virsequel(R1, R2, adapters, threads, output, database, blastn)
                 pipeline.run_pipeline()
         else:
             print("Error: Sample list missing from config file")
@@ -71,8 +75,12 @@ def main():
             print("Error: An output path is required")
             parser.print_help()
             sys.exit(1)
+        elif not database:
+            print("Error: Please provide a path to a blast database")
+            parser.print_help()
+            sys.exit(1)
         else:
-            pipeline = Virsequel(R1, R2, adapters,threads, output)
+            pipeline = Virsequel(R1, R2, adapters,threads, output, database, blastn)
             pipeline.run_pipeline()
 
 if __name__ == '__main__':

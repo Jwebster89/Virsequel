@@ -9,7 +9,8 @@ To run Virsequel, you'll need the following software and data:
 - Python 3
 - BBMap
 - MetaSPAdes
-- A database of viral reference sequences (To be included)
+- Diamond and/or NCBI BLAST
+- A database of viral reference sequences in nucl or prot format.
 
 ## Installation
 
@@ -24,9 +25,15 @@ git clone https://github.com/Jwebster89/virsequel.git
 
 - Python 3: Follow the instructions for your operating system to install Python 3.
 - BBMap: Download and install BBMap from the [BBMap website](https://jgi.doe.gov/data-and-tools/software-tools/bbtools/bb-tools-user-guide/installation-guide/).
-- MetaSPAdes: Download and install MetaSPAdes from the [MetaSPAdes website](https://github.com/ablab/spades).
+- MetaSPAdes: Download and install MetaSPAdes from the [MetaSPAdes GitHub page](https://github.com/ablab/spades).
+- Diamond: Download and install Diamond from the [Diamond GitHub page](https://github.com/bbuchfink/diamond/wiki)
+- NCBI BLAST: Download and install BLAST from [NCBI's download page](https://blast.ncbi.nlm.nih.gov/doc/blast-help/downloadblastdata.html#downloadblastdata)
 
-3. (To be included) Download a database of viral reference sequences to improve viral sequence identification. This step is optional, blastn can be performed with the "--remote" flag.
+3. Download a database of viral reference sequences for viral sequence identification. E.g.
+```
+wget https://ftp.ncbi.nih.gov/refseq/release/viral/viral.1.protein.faa.gz
+wget https://ftp.ncbi.nih.gov/refseq/release/viral/viral.1.1.genomic.fna.gz
+```
 
 
 ## Usage
@@ -34,12 +41,16 @@ git clone https://github.com/Jwebster89/virsequel.git
 To use Virsequel, run the `run_virsequel.py` script with the following command-line arguments:
 
 ```
-usage: run_virsequel.py -1 READ_1 -2 READ_2 -a ADAPTER -o OUTPUT [-h] [-t THREADS]
+usage: run_virsequel.py [-c CONFIG] [-1 READ_1] [-2 READ_2] [-a ADAPTER] [-o OUTPUT] [-b] [-d DATABASE] [-h] [-t THREADS]
 
         Identify viral sequences in rna seq data 
 
-    Version: 0.1.0
+    Version: 0.3.0
 
+
+options:
+  -c CONFIG, --config CONFIG
+                        Path to configuration file
 
 Required Arguments:
   -1 READ_1, --read_1 READ_1
@@ -50,6 +61,9 @@ Required Arguments:
                         adapter file for bbduk trimming
   -o OUTPUT, --output OUTPUT
                         output path
+  -b, --blastn          run blastn instead of diamond blastx
+  -d DATABASE, --database DATABASE
+                        the path of the database to use for blast
 
 Optional Arguments:
   -h, --help            show this help message and exit
@@ -57,7 +71,7 @@ Optional Arguments:
                         Number of threads for non-spades processes
 ```
 
-Virsequel will generate trimmed reads and meta RNA assemblies in the specified output directory.
+Virsequel will generate trimmed reads and meta RNA assemblies in the specified output directory and then perform a BLASTn or BLASTx based on user input
 
 ## License
 
