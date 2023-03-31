@@ -1,6 +1,6 @@
 # Virsequel
 
-Virsequel is a Python script for identifying viral sequences in RNA-seq data. It uses a combination of adapter trimming and assembly to identify and extract viral sequences from raw RNA-seq reads.
+Virsequel is a Python script for identifying viral sequences in RNA-seq data. It uses a combination of adapter trimming, assembly and BLAST to identify and extract viral sequences from raw RNA-seq reads.
 
 ## Requirements
 
