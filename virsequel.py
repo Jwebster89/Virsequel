@@ -13,39 +13,35 @@ class Virsequel():
             self.db=db
             self.blastn=blastn
             self.sampleID=os.path.basename(os.path.splitext(self.R1)[0]).replace(".fastq", "").replace(".fq", "")
-            # self.init_logs(self.sampleID)
+            if self.sampleID.endswith("_R1"):
+                self.sampleID = self.sampleID[:-3]
+            
+            # create logs directory if it does not exist
+            log_dir = os.path.join("logs")
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
+            # create a log file with timestamp, sample ID, and step
+            timestamp = datetime.datetime.now()
+            log_file = os.path.join(log_dir, f"{timestamp.strftime('%Y-%m-%d_%H-%M')}.{self.sampleID}.log")
 
-    def init_logs(self,sampleID):
-        # create logs directory if it does not exist
-        log_dir = os.path.join("logs")
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-        # create a log file with timestamp, sample ID, and step
-        timestamp = datetime.datetime.now()
-        log_file = os.path.join(log_dir, f"{timestamp.strftime('%Y-%m-%d_%H-%M')}.{sampleID}.log")
+            # configure logging
+            self.logger = logging.getLogger(self.sampleID)
+            self.logger.setLevel(logging.INFO)
+            formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+            file_handler = logging.FileHandler(log_file)
+            file_handler.setFormatter(formatter)
+            self.logger.addHandler(file_handler)
 
-        logger = logging.getLogger(sampleID)
-        logger.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-
-         
+        
     def trimming(self, R1, R2, adapters, threads, outdir):
         print("STEP 1: Trimming")
-        logger = logging.getLogger(self.sampleID)
+        # logger = logging.getLogger(self.sampleID)
         # check if input files end with the expected file extensions
         valid_extensions = [".fq", ".fastq", ".fq.gz", ".fastq.gz"]
         if not any(R1.endswith(ext) for ext in valid_extensions) or not any(R2.endswith(ext) for ext in valid_extensions):
             print("Error: input files must be in fastq format")
-            logger.error("Error: input files must be in fastq format")
+            self.logger.error("Error: input files must be in fastq format")
             sys.exit(1)
-
-        # # get sample ID from the filename of R1 and remove file extension
-        # sampleID=os.path.basename(os.path.splitext(R1)[0]).replace(".fastq", "").replace(".fq", "")
-        if self.sampleID.endswith("_R1"):
-            self.sampleID = self.sampleID[:-3]
 
         # create directory to store trimmed reads if it does not exist
         trim_dir=os.path.join(outdir,"trimmed_reads")
@@ -62,9 +58,9 @@ class Virsequel():
         
         # log the start of the trimming process
         print(f"Trimming sample {self.sampleID} with bbduk and saving files to {trim_dir}")
-        logger.info(f"Trimming sample {self.sampleID} with bbduk and saving files to {output_R1} and {output_R2}")
+        self.logger.info(f"Trimming sample {self.sampleID} with bbduk and saving files to {output_R1} and {output_R2}")
         # log the bbduk command
-        logger.info(f"Running command: {' '.join(cmd)}")
+        self.logger.info(f"Running command: {' '.join(cmd)}")
 
         if not os.path.isfile(output_R1):
             try:
@@ -72,18 +68,18 @@ class Virsequel():
                 subprocess.run(cmd, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, encoding='utf-8')
             except subprocess.CalledProcessError as error:
                 # log errors and raise exception if subprocess fails
-                logger.error(f"Error while running command: {' '.join(cmd)}")
-                logger.error(f"Error message: {error.stderr}")
+                self.logger.error(f"Error while running command: {' '.join(cmd)}")
+                self.logger.error(f"Error message: {error.stderr}")
                 raise
             print(f"Finished trimming sample {self.sampleID}")
-            logger.info(f"Finished trimming sample {self.sampleID}")
+            self.logger.info(f"Finished trimming sample {self.sampleID}")
         else:
-            logger.info(f"trimmed data for {self.sampleID} already exists. Skipping.")
+            self.logger.info(f"trimmed data for {self.sampleID} already exists. Skipping.")
 
 
     def assembly(self, R1, R2, outdir):
         print("\nSTEP 2: Assembly")
-        logger = logging.getLogger(self.sampleID)
+        # logger = logging.getLogger(self.sampleID)
         assembly_dir=os.path.join(outdir,"assemblies")
         if not os.path.exists(assembly_dir):
             os.mkdir(assembly_dir)
@@ -94,7 +90,7 @@ class Virsequel():
 
         # log the start of the assembly process
         print(f"Assembling sample {self.sampleID} with metaspades and saving files to {assembly_dir}")
-        logger.info(f"Assembling sample {self.sampleID} with metaspades and saving files to {assembly_dir}")
+        self.logger.info(f"Assembling sample {self.sampleID} with metaspades and saving files to {assembly_dir}")
 
         # create input filenames and output location for spades
         input_1=os.path.join(outdir, "trimmed_reads", os.path.basename(os.path.splitext(R1)[0]).replace(".fastq.gz", "").replace(".fq.gz", "") + ".trim.fastq.gz")
@@ -105,7 +101,7 @@ class Virsequel():
         cmd= ["metaspades.py", "-1" , input_1, "-2", input_2,  "--only-assembler", "-t", "8", "-k", "21,31,41,51,61,71,81,91,101", "-o", spades_out]
 
         # log the spades command
-        logger.info(f"Running command: {' '.join(cmd)}")
+        self.logger.info(f"Running command: {' '.join(cmd)}")
         print(f"Running metaspades on {self.sampleID}")
         if not os.path.isfile(os.path.join(spades_out, "contigs.fasta")):
             try:
@@ -113,13 +109,13 @@ class Virsequel():
                 subprocess.run(cmd, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, encoding='utf-8')
             except subprocess.CalledProcessError as error:
                 # log errors and raise exception if subprocess fails
-                logger.error(f"Error while running command: {' '.join(cmd)}")
-                logger.error(f"Error message: {error.stderr}")
+                self.logger.error(f"Error while running command: {' '.join(cmd)}")
+                self.logger.error(f"Error message: {error.stderr}")
                 raise
             print(f"Finished assembling sample {self.sampleID}")
-            logger.info(f"Finished assembling sample {self.sampleID}")
+            self.logger.info(f"Finished assembling sample {self.sampleID}")
         else:
-            logger.info(f"Assembly for {self.sampleID} already exists. Skipping.")
+            self.logger.info(f"Assembly for {self.sampleID} already exists. Skipping.")
 
     
     def blast(self, outdir, db, blastn):
@@ -129,15 +125,15 @@ class Virsequel():
             method="BLASTx and Diamond"
         
         print("\nSTEP 3: BLAST")
-        logger = logging.getLogger(self.sampleID)
+        # logger = logging.getLogger(self.sampleID)
         blast_dir=os.path.join(outdir,"blast_results")
         if not os.path.exists(blast_dir):
             os.mkdir(blast_dir)
 
         # log the start of the blast process
         print(f"Performing BLAST of sample {self.sampleID} with {method}, and saving files to {blast_dir}")
-        logger.info(f"Database for BLAST located at {db}")
-        logger.info(f"Performing BLAST of sample {self.sampleID} with {method}, and saving files to {blast_dir}")
+        self.logger.info(f"Database for BLAST located at {db}")
+        self.logger.info(f"Performing BLAST of sample {self.sampleID} with {method}, and saving files to {blast_dir}")
 
         blast_query=os.path.join(outdir,"assemblies",self.sampleID+"_spades","contigs.fasta")
         blastn_out=os.path.join(blast_dir,self.sampleID+".blastn.results")
@@ -147,7 +143,7 @@ class Virsequel():
         blastn_cmd = ['blastn',
        '-query', blast_query,
        '-db', db,
-       '-outfmt', '6 staxid qseqid qlen sacc slen pident length evalue qstart qend sstart send salltitles qcovs',
+       '-outfmt', '6 qseqid qlen sacc slen pident length evalue qstart qend sstart send sskingdoms salltitles',
        '-max_target_seqs', '1',
        '-max_hsps', '1',
        '-num_threads', '23',
@@ -171,7 +167,7 @@ class Virsequel():
             cmd=blastx_cmd
 
         # log the blast command
-        logger.info(f"Running command: {' '.join(cmd)}")
+        self.logger.info(f"Running command: {' '.join(cmd)}")
         print(f"Running command: {' '.join(cmd)}")
         print(f"Running {method} on {self.sampleID}")
         if blastn:
@@ -181,13 +177,13 @@ class Virsequel():
                     subprocess.run(cmd, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, encoding='utf-8')
                 except subprocess.CalledProcessError as error:
                     # log errors and raise exception if subprocess fails
-                    logger.error(f"Error while running command: {' '.join(cmd)}")
-                    logger.error(f"Error message: {error.stderr}")
+                    self.logger.error(f"Error while running command: {' '.join(cmd)}")
+                    self.logger.error(f"Error message: {error.stderr}")
                     raise
                 print(f"Finished running BLASTn on sample {self.sampleID}")
-                logger.info(f"Finished running BLASTn on sample {self.sampleID}")
+                self.logger.info(f"Finished running BLASTn on sample {self.sampleID}")
             else:
-                logger.info(f"BLASTn results for {self.sampleID} already exists. Skipping.")
+                self.logger.info(f"BLASTn results for {self.sampleID} already exists. Skipping.")
         # Run BLASTx with diamond if BLASTn wasn't selected
         else:
             if not os.path.isfile(blastx_out):
@@ -196,16 +192,15 @@ class Virsequel():
                     subprocess.run(cmd, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, encoding='utf-8')
                 except subprocess.CalledProcessError as error:
                     # log errors and raise exception if subprocess fails
-                    logger.error(f"Error while running command: {' '.join(cmd)}")
-                    logger.error(f"Error message: {error.stderr}")
+                    self.logger.error(f"Error while running command: {' '.join(cmd)}")
+                    self.logger.error(f"Error message: {error.stderr}")
                     raise
                 print(f"Finished running BLASTx on sample {self.sampleID}")
-                logger.info(f"Finished running BLASTx on sample {self.sampleID}")
+                self.logger.info(f"Finished running BLASTx on sample {self.sampleID}")
             else:
-                logger.info(f"BLASTx results for {self.sampleID} already exists. Skipping.")
+                self.logger.info(f"BLASTx results for {self.sampleID} already exists. Skipping.")
             
     def run_pipeline(self):
-        self.init_logs(self.sampleID)
         print(f"\n=== Starting Sample {self.sampleID} ===\n")
         self.trimming(self.R1, self.R2, self.adapters, self.threads, self.output)
         self.assembly(self.R1, self.R2, self.output)

@@ -62,6 +62,8 @@ def main():
         adapters = args.adapter
         threads = args.threads
         output = args.output
+        database=args.database
+        blastn=args.blastn
 
         if not R1 and R2:
             print("Error: You must provide forward and reverse reads")
